@@ -1,0 +1,70 @@
+# ---------- Secrets & credentials (never commit) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+credentials
+credentials.*
+.aws/
+aws-credentials*
+*secret*
+!**/*secret*.example*
+*.tfvars
+.pgpass
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.whl
+
+# ---------- Virtual environments ----------
+.venv/
+venv/
+env/
+.python-version
+
+# ---------- Tooling caches ----------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ---------- Data zones (generated at runtime; keep folder placeholders) ----------
+data/source/*
+data/raw/*
+data/processed/*
+data/rejected/*
+!data/**/.gitkeep
+
+# ---------- Local databases ----------
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+postgres-data/
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- IDE / OS ----------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---------- Rendered deployment configs (contain account-specific IDs) ----------
+deploy/aws/rendered/

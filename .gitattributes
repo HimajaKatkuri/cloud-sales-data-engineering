@@ -1,0 +1,10 @@
+# Normalise line endings so the project behaves the same on Windows, macOS and Linux.
+* text=auto eol=lf
+
+# Shell scripts must keep LF or bash fails with "$'\r': command not found".
+*.sh text eol=lf
+
+# Binary formats: never touch.
+*.parquet binary
+*.png binary
+*.zip binary
