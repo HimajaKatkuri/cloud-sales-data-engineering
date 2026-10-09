@@ -1,0 +1,79 @@
+# Local stack:  cp .env.example .env && docker compose up --build
+#
+#   postgres   PostgreSQL 16 (data persisted in the "pgdata" volume)
+#   seed-data  one-shot: writes synthetic source files to ./data/source if missing
+#   mock-api   the simulated payments REST API (http://localhost:8000)
+#   pipeline   one-shot: init-db -> run ETL -> data-quality checks -> analytics queries
+#
+# The pipeline container exits when the batch is done (it is a batch job, not a server);
+# postgres and mock-api keep running so you can rerun or query.
+
+name: cloud-sales-pipeline
+
+x-app: &app
+  build:
+    context: .
+    args:
+      APP_UID: ${APP_UID:-1000}  # Linux hosts: APP_UID=$(id -u) docker compose build
+  image: cloud-sales-pipeline:local
+  env_file:
+    - path: .env
+      required: true
+  environment:
+    DATABASE_HOST: postgres
+    DATABASE_PORT: "5432"
+    API_BASE_URL: http://mock-api:8000
+    LOCAL_DATA_DIR: /app/data
+    SOURCE_DATA_DIR: /app/data/source
+    LOG_FORMAT: text
+  volumes:
+    - ./data:/app/data
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-sales_dw}
+      POSTGRES_USER: ${DATABASE_USER:-sales_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env (cp .env.example .env)}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  seed-data:
+    <<: *app
+    command: ["generate-data", "--if-missing"]
+    restart: "no"
+
+  mock-api:
+    <<: *app
+    command: ["mock-api", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      seed-data:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  pipeline:
+    <<: *app
+    command: ["demo"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
