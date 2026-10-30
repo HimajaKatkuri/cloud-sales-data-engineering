@@ -1,0 +1,17 @@
+# Optional override: run the local stack against a REAL S3 bucket instead of ./data.
+#
+#   docker compose -f docker-compose.yml -f docker/docker-compose.s3.yml up --build
+#
+# Requires S3_BUCKET and AWS_REGION in .env, plus AWS credentials. The recommended way is
+# a named AWS CLI profile (no keys in .env): this mounts ~/.aws read-only and selects
+# AWS_PROFILE. Source files (data/source) and the simulated API still run locally; the
+# raw/processed/rejected zones go to s3://$S3_BUCKET/$S3_PREFIX/...
+
+services:
+  pipeline:
+    environment:
+      STORAGE_BACKEND: s3
+      S3_PREFIX: ${S3_PREFIX:-local-dev}
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+    volumes:
+      - ${HOME}/.aws:/home/app/.aws:ro
